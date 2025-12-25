@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ManJ1939_v.g.1.38_1226</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* 100% FC v.g.1.36 Styles */
+    :root {
+      --bg: #f1f5f9; --panel: #ffffff; --text: #0f172a;
+      --muted: #64748b; --accent: #2563eb; --line: rgba(0,0,0,.08);
+      --radius: 12px; --header-h: 70px;
+    }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); font-family: sans-serif; color: var(--text); overflow: hidden; }
+    .header { background: #ffffff; width: 100%; height: var(--header-h); padding: 0 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-bottom: 1px solid var(--line); box-sizing: border-box; z-index: 100; }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .header-logo { height: 45px; width: auto; max-width: 250px; object-fit: contain; }
+    .header-title { font-size: 18px; font-weight: bold; color: #1e293b; }
+    .main-wrapper { width: 100%; display: flex; height: calc(100vh - var(--header-h)); }
+    
+    .master-list { flex: 1; height: 100%; background: var(--panel); padding: 20px; border-right: 1px solid var(--line); transition: all 0.3s ease; overflow-y: auto; box-sizing: border-box; }
+    .show-detail .master-list { flex: 0 0 25%; min-width: 220px; }
+    .show-detail .master-list th:nth-child(n+3), .show-detail .master-list td:nth-child(n+3) { display: none !important; }
+    
+    .detail-panel { flex: 0; opacity: 0; visibility: hidden; width: 0; background: var(--bg); transition: all 0.3s ease; overflow: hidden; box-sizing: border-box; }
+    .show-detail .detail-panel { flex: 0 0 75%; opacity: 1; visibility: visible; }
+    .detail-card { background: white; width: 100%; height: 100%; padding: 24px 30px; box-sizing: border-box; box-shadow: -4px 0 15px rgba(0,0,0,0.03); overflow-y: auto; border-radius: var(--radius) 0 0 0; }
+    
+    /* Status Dot UI */
+    .name-cell { display: flex; align-items: center; gap: 8px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .status-v { background: #10b981; box-shadow: 0 0 4px rgba(16,185,129,0.4); }
+    .status-other { background: #cbd5e1; }
+
+    /* Section 1, 2, 3 Styles (Inherited) */
+    .section-1-pill-box { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9; }
+    .item-title { font-size: 20px; font-weight: 800; color: #1e293b; margin: 0; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; margin-top: 10px; }
+    .pill { background: #f1f5f9; padding: 4px 10px; border-radius: 6px; display: flex; align-items: baseline; gap: 6px; border: 1px solid #e2e8f0; }
+    .pill-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .pill-value { font-size: 12px; font-weight: 600; color: var(--accent); }
+    .desc-box { font-size: 12px; line-height: 1.5; color: #475569; background: #fafafa; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #cbd5e1; }
+    
+    .section-2-filter { height: 50px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; overflow: hidden; }
+    .filter-btn-group { display: flex; gap: 8px; align-items: center; }
+    .f-btn { background: #ffffff; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .f-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .custom-date-area { background: #f8fafc; padding: 5px 12px; border-radius: 8px; display: none; align-items: center; gap: 10px; border: 1px solid #e2e8f0; height: 34px; }
+    .custom-date-area.show { display: inline-flex; animation: fadeIn 0.2s ease; }
+    .custom-date-area input { border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 6px; font-size: 12px; width: 140px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+    th { text-align: left; padding: 12px; color: var(--muted); border-bottom: 2px solid var(--bg); background: #f8fafc; position: sticky; top: 0; }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; }
+    tr[data-rowid] { cursor: pointer; }
+    tr.active { background: #eff6ff; color: var(--accent); font-weight: bold; border-left: 4px solid var(--accent); }
+    th:nth-child(1), td:nth-child(1) { width: 40px; text-align: center; }
+    th:nth-child(2), td:nth-child(2) { width: 180px; }
+    th:nth-child(3), td:nth-child(3) { width: 110px; }
+    th:nth-child(4), td:nth-child(4) { width: 60px; }
+    th:nth-child(5), td:nth-child(5) { width: 90px; }
+    th:nth-child(6), td:nth-child(6) { width: 220px; }
+    th:nth-child(7), td:nth-child(7) { width: 180px; }
+    th:nth-child(8), td:nth-child(8) { width: 50px; text-align: center; }
+
+    .tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; }
+    .tab-btn { padding: 10px 12px; border: none; background: transparent; cursor: pointer; font-weight: 600; color: var(--muted); font-size: 13px; }
+    .tab-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); margin-bottom: -2px; }
+    .chart-box { position: relative; height: 420px; width: 100%; margin: 15px 0; }
+    .kpi-main { font-size: 64px; font-weight: 800; color: var(--accent); text-align: center; margin: 20px 0; }
+    .close-panel { float: right; cursor: pointer; font-size: 28px; color: var(--muted); margin-top: -10px; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body onload="initApp()">
+
+  <header class="header">
+    <div class="header-left">
+      <img src="Logo_MAN.png" alt="Logo" class="header-logo" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/MAN_Logo.svg/1200px-MAN_Logo.svg.png'">
+      <div class="header-title">至遠至懋 車隊管理訊號總表 x 弋揚科技</div>
+    </div>
+    <div style="font-size: 11px; color: var(--muted);">v.g.1.38_1226 | FC: v.g.1.36</div>
+  </header>
+
+  <div class="main-wrapper" id="mainContainer">
+    <div class="master-list">
+      <h3 style="margin-top:0">訊號清單</h3>
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th>#</th><th>項目名稱</th><th>PGN</th><th>SPN</th><th>頻率</th><th>呈現方式</th><th>備註</th><th>格碼</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-card">
+        <span class="close-panel" onclick="closePanel()">&times;</span>
+        <div id="info-section-1" class="section-1-pill-box">
+          <h2 id="detailTitle" class="item-title">數據分析</h2>
+          <div id="pillArea" class="pill-row"></div>
+          <div id="descArea" class="desc-box"></div>
+        </div>
+        <div id="info-section-2" class="section-2-filter">
+          <div class="filter-btn-group">
+            <button class="f-btn" onclick="setDateRange('today', this)">今天</button>
+            <button class="f-btn" onclick="setDateRange('yesterday', this)">昨日</button>
+            <button class="f-btn" onclick="setDateRange('week', this)">本週</button>
+            <button class="f-btn active" onclick="setDateRange('month', this)">本月</button>
+            <button class="f-btn" id="customBtn" onclick="toggleCustomDate()">自訂 ▽</button>
+          </div>
+          <div id="customDateArea" class="custom-date-area">
+            <input type="datetime-local" id="startTime">
+            <span>至</span>
+            <input type="datetime-local" id="endTime">
+            <button class="f-btn active" style="padding:4px 10px; font-size:11px" onclick="loadData()">同步</button>
+          </div>
+        </div>
+        <div id="info-section-3">
+          <div id="tabsContainer" class="tabs"></div>
+          <div id="contentArea"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const items = [
+      {id:1, n:"里程油耗", p:"65257 (0xFEE9)", s:"250", f:"當下 60s", r:"1. 總KM/L, 2. 總KM/L vs 時間點, 3. 總KM/L vs rpm時長", m:"依需求，設定區間", g:"△"},
+      {id:2, n:"總油耗", p:"65257 (0xFEE9)", s:"250", f:"當下 60s", r:"總KM/L", m:"依需求，設定區間", g:"V"},
+      {id:3, n:"燃油率", p:"65266 (0xFEF2)", s:"183", f:"有變化回傳", r:"L/hr vs 時間點", m:"依需求，設定區間", g:"V"},
+      {id:4, n:"瞬間燃油經濟性", p:"65266 (0xFEF2)", s:"184", f:"有變化回傳", r:"次數 vs 時間點 (計數)", m:"小於一定數值，回傳", g:"V"},
+      {id:5, n:"尿素液位", p:"65110 (0xFE56)", s:"1761", f:"當下 3600s", r:"1. % vs 時間點", m:"依需求，設定區間", g:"V"},
+      {id:6, n:"高精度總里程", p:"65217 (0xFEC1)", s:"917", f:"當下 120s", r:"km vs 時間點", m:"依需求，設定區間", g:"V"},
+      {id:7, n:"高精度旅程里程", p:"65217 (0xFEC1)", s:"918", f:"當下 120s", r:"km vs 時間點", m:"依需求，設定區間", g:"V"},
+      {id:8, n:"引擎轉速", p:"61444 (0xF004)", s:"190", f:"打包 60s", r:"1. rpm vs 時間點, 2. rpm vs 時長, 3. rpm vs 時長 (比例), 4. 經濟轉速, 5. 最高轉速", m:"依需求，設定區間", g:"V"},
+      {id:9, n:"油門踏板", p:"61443 (0xF003)", s:"91", f:"當下 1s", r:"1. % vs 時間點, 2. % vs 時長", m:"依需求，設定區間", g:"V"},
+      {id:10, n:"煞車踏板", p:"61441 (0xF001)", s:"521", f:"當下 1s", r:"1. % vs 時間點, 2. % vs 時長", m:"依需求，設定區間", g:"V"},
+      {id:11, n:"ABS 訊號", p:"61441 (0xF001)", s:"563", f:"有變化回傳", r:"次數 vs 時間點 (表格)", m:"依需求，設定區間", g:"△"},
+      {id:12, n:"EBA 訊號", p:"64919 (0xFD97)", s:"6010", f:"有變化回傳", r:"次數 vs 時間點 vs 車速 (表格)", m:"無法判斷EBA取消是否被開啟", g:"△"},
+      {id:13, n:"引擎煞車/油壓減速器", p:"61440 (0xF000)", s:"520", f:"有變化回傳", r:"% vs 時間點", m:"依需求，設定區間", g:"△"},
+      {id:14, n:"車速", p:"65132 (0xFE6C)", s:"1624", f:"打包 60s", r:"1. KM/H vs 時長, 2. KM/H vs 時長 (比例), 3. 平均/最高速度", m:"輔助其他項目", g:"V"},
+      {id:15, n:"選擇檔位", p:"61445 (0xF005)", s:"524", f:"有變化回傳", r:"選擇 vs 當前 vs 時間點 (表格)", m:"2秒內，選擇≠當前，回傳", g:"V"},
+      {id:16, n:"當前檔位", p:"61445 (0xF005)", s:"523", f:"有變化回傳", r:"1. 檔位 vs 時間點, 2. 檔位 vs 時長", m:"依需求，設定區間", g:"V"},
+      {id:17, n:"軸重", p:"65258 (0xFEEA)", s:"922", f:"有變化回傳", r:"kgs vs 時間點 (表格)", m:"依需求 (05K無, 43K有)", g:"X"},
+      {id:18, n:"車重", p:"65258 (0xFEEA)", s:"922", f:"有變化回傳", r:"kgs vs 時間點 (表格)", m:"依需求，設定區間", g:"X"},
+      {id:19, n:"LGS", p:"64919 (0xFD97)", s:"6000", f:"有變化回傳", r:"次數 vs 時間點 vs 車速 (表格)", m:"僅偵測是否啟用", g:"X"},
+      {id:20, n:"冷卻水溫", p:"65262 (0xFEEE)", s:"110", f:"當下 600s", r:"°C vs 時間點", m:"依需求，設定區間", g:"X"}
+    ];
+
+    let myCharts = []; let currentRange = 'month'; let selectedId = null;
+
+    function initApp() {
+      const tableBody = document.getElementById('tableBody');
+      items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.dataset.rowid = item.id;
+        // Logic for Green/Grey Dot in Name Column
+        const dotClass = item.g === 'V' ? 'status-v' : 'status-other';
+        tr.innerHTML = `
+          <td>${item.id}</td>
+          <td><div class="name-cell"><span class="status-dot ${dotClass}"></span><b>${item.n}</b></div></td>
+          <td>${item.p}</td><td>${item.s}</td><td>${item.f}</td><td>${item.r}</td><td>${item.m}</td><td style="text-align:center">${item.g}</td>
+        `;
+        tr.onclick = () => selectRow(item.id, tr);
+        tableBody.appendChild(tr);
+      });
+      const now = new Date(); const lastMonth = new Date(); lastMonth.setMonth(now.getMonth() - 1);
+      const formatDate = (d, h, m) => { d.setHours(h, m, 0, 0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+      document.getElementById('startTime').value = formatDate(lastMonth, 0, 0);
+      document.getElementById('endTime').value = formatDate(now, 23, 59);
+    }
+
+    function selectRow(id, el) {
+      selectedId = id;
+      document.querySelectorAll('tr').forEach(r => r.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('mainContainer').classList.add('show-detail');
+      const item = items.find(i => i.id == id);
+      document.getElementById('detailTitle').innerText = item.n;
+      document.getElementById('pillArea').innerHTML = `
+        <div class="pill"><span class="pill-label">PGN</span><span class="pill-value">${item.p}</span></div>
+        <div class="pill"><span class="pill-label">SPN</span><span class="pill-value">${item.s}</span></div>
+        <div class="pill"><span class="pill-label">Freq</span><span class="pill-value">${item.f}</span></div>
+        <div class="pill"><span class="pill-label">Code</span><span class="pill-value">${item.g}</span></div>
+      `;
+      document.getElementById('descArea').innerHTML = `<div><strong>呈現：</strong>${item.r}</div><div style="margin-top:4px; color:var(--muted)"><strong>備註：</strong>${item.m}</div>`;
+      setupTabs(id);
+    }
+
+    function setupTabs(id) {
+      const tabsContainer = document.getElementById('tabsContainer');
+      tabsContainer.innerHTML = '';
+      let opts = []; const item = items.find(i => i.id == id);
+      const lines = item.r.split(',').map(l => l.trim());
+      lines.forEach((line, idx) => { const cleanName = line.replace(/^\d+\.\s*/, ''); opts.push({ id: `t-${id}-${idx}`, n: cleanName }); });
+      opts.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${idx===0?'active':''}`;
+        btn.innerText = opt.n;
+        btn.onclick = () => { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); showTabContent(opt.id, opt.n); };
+        tabsContainer.appendChild(btn);
+      });
+      showTabContent(opts[0].id, opts[0].n);
+    }
+
+    function showTabContent(tabId, tabName) {
+      const contentArea = document.getElementById('contentArea');
+      contentArea.innerHTML = ''; myCharts.forEach(c => c.destroy()); myCharts = [];
+      let count = (currentRange === 'week') ? 7 : (currentRange.includes('today') ? 24 : 30);
+      let labels = [], data = [];
+      for(let i=1; i<=count; i++) {
+        labels.push(currentRange==='week' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i-1] : (count===24 ? `${i-1}:00` : `${i}`));
+        data.push(Math.floor(Math.random() * 50) + 20);
+      }
+      const unit = getUnit(tabName); const xTitle = count === 24 ? 'Time (hr)' : 'Date';
+      if (tabName.includes('比例') || tabName.includes('時長')) {
+        contentArea.innerHTML = `<div class="chart-box"><canvas id="c"></canvas></div>`;
+        myCharts.push(new Chart(document.getElementById('c'), { type: 'pie', data: { labels: ['正常', '低值', '高值'], datasets: [{ data: [70, 15, 15], backgroundColor: ['#2563eb', '#64748b', '#ef4444'] }] }, options: { responsive: true, maintainAspectRatio: false } }));
+      } else if (tabName.includes('表格') || tabName.includes('紀錄')) {
+        contentArea.innerHTML = `<div class="kpi-main">${Math.max(...data)} <small style="font-size:24px">${unit}</small></div><table style="width:100%"><tr><th>觸發時間</th><th>數值</th></tr><tr><td>10:45</td><td>${Math.max(...data)} ${unit}</td></tr></table>`;
+      } else {
+        contentArea.innerHTML = `<div class="chart-box"><canvas id="c"></canvas></div>`;
+        myCharts.push(new Chart(document.getElementById('c'), {
+          type: 'line', data: { labels: labels, datasets: [{ label: tabName, data: data, borderColor: '#2563eb', tension: 0.3, fill: true, backgroundColor: 'rgba(37, 99, 235, 0.05)' }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: `Value (${unit})` }, ticks: { callback: v => v + ' ' + unit } }, x: { title: { display: true, text: xTitle } } } }
+        }));
+      }
+    }
+
+    function getUnit(name) {
+      if (name.includes('KM/L')) return 'km/L'; if (name.includes('km') || name.includes('KM')) return 'km';
+      if (name.includes('rpm') || name.includes('RPM')) return 'RPM'; if (name.includes('L/hr')) return 'L/hr';
+      if (name.includes('KM/H')) return 'km/h'; if (name.includes('%')) return '%';
+      if (name.includes('°C')) return '°C'; if (name.includes('kgs')) return 'kg'; return '';
+    }
+
+    function setDateRange(type, btn) { document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('customDateArea').classList.remove('show'); currentRange = type; loadData(); }
+    function toggleCustomDate() { document.getElementById('customDateArea').classList.toggle('show'); document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active')); document.getElementById('customBtn').classList.add('active'); currentRange = 'custom'; loadData(); }
+    function loadData() { const active = document.querySelector('.tab-btn.active'); if (active) showTabContent(null, active.innerText); }
+    function closePanel() { document.getElementById('mainContainer').classList.remove('show-detail'); document.querySelectorAll('tr').forEach(r => r.classList.remove('active')); }
+  </script>
+</body>
+</html>
